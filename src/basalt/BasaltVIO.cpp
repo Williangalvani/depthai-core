@@ -17,6 +17,7 @@ class BasaltVIO::Impl {
     std::shared_ptr<tbb::concurrent_bounded_queue<basalt::OpticalFlowInput::Ptr>> imageDataQueue;
     std::shared_ptr<tbb::concurrent_bounded_queue<basalt::ImuData<double>::Ptr>> imuDataQueue;
     std::shared_ptr<tbb::concurrent_bounded_queue<basalt::PoseVelBiasState<double>::Ptr>> outStateQueue;
+    std::shared_ptr<tbb::concurrent_bounded_queue<basalt::VioVisualizationData::Ptr>> outVisQueue;
     std::shared_ptr<tbb::detail::d1::global_control> tbbGlobalControl;
 };
 
@@ -48,6 +49,7 @@ void BasaltVIO::setLocalTransform(const std::shared_ptr<TransformData>& transfor
 }
 void BasaltVIO::run() {
     basalt::PoseVelBiasState<double>::Ptr data;
+    basalt::VioVisualizationData::Ptr visData;
     Eigen::Matrix<double, 3, 3> R;
     R << 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0;
     Eigen::Quaterniond q(R);
@@ -67,6 +69,39 @@ void BasaltVIO::run() {
         auto out = std::make_shared<TransformData>(trans.x(), trans.y(), trans.z(), rot.x(), rot.y(), rot.z(), rot.w());
         transform.send(out);
         passthrough.send(leftImg);
+
+        // Process VIO quality metrics if available
+        if(pimpl->outVisQueue && pimpl->outVisQueue->try_pop(visData) && visData.get()) {
+            auto qualityData = std::make_shared<VIOQualityData>();
+            qualityData->setTimestamp(std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>(std::chrono::nanoseconds(visData->t_ns)));
+            
+            // Extract visual feature tracking metrics
+            qualityData->numActivePoints = visData->points.size();
+            qualityData->numStates = visData->states.size();
+            qualityData->numKeyframes = visData->frames.size();
+            qualityData->isTracking = true;
+            
+            // Extract optical flow quality metrics
+            if(visData->opt_flow_res) {
+                qualityData->numTrackedFeatures.clear();
+                int totalFeatures = 0;
+                for(const auto& obs : visData->opt_flow_res->observations) {
+                    int numFeatures = obs.size();
+                    qualityData->numTrackedFeatures.push_back(numFeatures);
+                    totalFeatures += numFeatures;
+                }
+                qualityData->numObservations = totalFeatures;
+                
+                // Calculate average tracking quality based on number of tracked features
+                if(!qualityData->numTrackedFeatures.empty()) {
+                    float avgFeatures = float(totalFeatures) / qualityData->numTrackedFeatures.size();
+                    // Normalize to expected feature count (rough estimate)
+                    qualityData->avgTrackingQuality = std::min(1.0f, avgFeatures / 200.0f);
+                }
+            }
+            
+            quality.send(qualityData);
+        }
     }
 }
 
@@ -131,6 +166,9 @@ void BasaltVIO::imuCB(std::shared_ptr<ADatatype> imuData) {
 void BasaltVIO::stop() {
     pimpl->imageDataQueue->push(nullptr);
     pimpl->imuDataQueue->push(nullptr);
+    if(pimpl->outVisQueue) {
+        pimpl->outVisQueue->push(nullptr);
+    }
     ThreadedHostNode::stop();
 }
 
@@ -218,6 +256,8 @@ void BasaltVIO::initialize(std::vector<std::shared_ptr<ImgFrame>> frames) {
     optFlowPtr->output_queue = vio->vision_data_queue;
     pimpl->outStateQueue = std::make_shared<tbb::concurrent_bounded_queue<basalt::PoseVelBiasState<double>::Ptr>>();
     vio->out_state_queue = pimpl->outStateQueue;
+    pimpl->outVisQueue = std::make_shared<tbb::concurrent_bounded_queue<basalt::VioVisualizationData::Ptr>>();
+    vio->out_vis_queue = pimpl->outVisQueue.get();
     vio->opt_flow_depth_guess_queue = optFlowPtr->input_depth_queue;
     vio->opt_flow_state_queue = optFlowPtr->input_state_queue;
     vio->opt_flow_lm_bundle_queue = optFlowPtr->input_lm_bundle_queue;

@@ -10,6 +10,7 @@
 #include "depthai/pipeline/ThreadedHostNode.hpp"
 #include "depthai/pipeline/datatype/IMUData.hpp"
 #include "depthai/pipeline/datatype/TransformData.hpp"
+#include "depthai/pipeline/datatype/VIOQualityData.hpp"
 #include "depthai/pipeline/node/Sync.hpp"
 #include "depthai/utility/Pimpl.hpp"
 
@@ -54,6 +55,10 @@ class BasaltVIO : public NodeCRTP<ThreadedHostNode, BasaltVIO> {
      * Output passthrough of left image.
      */
     Output passthrough{*this, {"imgPassthrough", DEFAULT_GROUP, {{DatatypeEnum::ImgFrame, true}}}};
+    /**
+     * Output VIO quality metrics including optimization quality and visual feature tracking quality.
+     */
+    Output quality{*this, {"quality", DEFAULT_GROUP, {{DatatypeEnum::VIOQualityData, true}}}};
 
     /**
      * VIO configuration file.
