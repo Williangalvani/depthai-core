@@ -6,6 +6,7 @@
 
 // depthai
 #include "depthai/pipeline/datatype/Buffer.hpp"
+#include "depthai/pipeline/datatype/VIOQualityData.hpp"
 
 // pybind
 #include <pybind11/chrono.h>
@@ -18,6 +19,17 @@ void bind_buffer(pybind11::module& m, void* pCallstack) {
 
     // py::class_<RawBuffer, std::shared_ptr<RawBuffer>> rawBuffer(m, "RawBuffer", DOC(dai, RawBuffer));
     py::class_<Buffer, Py<Buffer>, ADatatype, std::shared_ptr<Buffer>> buffer(m, "Buffer", DOC(dai, Buffer));
+    py::class_<VIOQualityData, Buffer, std::shared_ptr<VIOQualityData>>(m, "VIOQualityData")
+        .def(py::init<>())
+        .def_readwrite("numTrackedFeatures", &VIOQualityData::numTrackedFeatures)
+        .def_readwrite("numLandmarks", &VIOQualityData::numLandmarks)
+        .def_readwrite("numObservations", &VIOQualityData::numObservations)
+        .def_readwrite("numActivePoints", &VIOQualityData::numActivePoints)
+        .def_readwrite("isTracking", &VIOQualityData::isTracking)
+        .def_readwrite("numKeyframes", &VIOQualityData::numKeyframes)
+        .def_readwrite("numStates", &VIOQualityData::numStates)
+        .def_readwrite("avgTrackingQuality", &VIOQualityData::avgTrackingQuality)
+        .def_readwrite("processingTimeMs", &VIOQualityData::processingTimeMs);
 
     ///////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////
