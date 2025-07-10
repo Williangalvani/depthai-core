@@ -105,5 +105,6 @@ void bind_basaltnode(pybind11::module& m, void* pCallstack) {
         .def_readwrite("mapper_use_lm", &basalt::VioConfig::mapper_use_lm)
         .def_readwrite("mapper_lm_lambda_min", &basalt::VioConfig::mapper_lm_lambda_min)
         .def_readwrite("mapper_lm_lambda_max", &basalt::VioConfig::mapper_lm_lambda_max);
+        .def_readonly("quality", &BasaltVIO::quality, DOC(dai, node, BasaltVIO, quality))
     ///////////////////////////////////////////////////////////////////////
 }
