@@ -41,6 +41,7 @@
 #include "depthai/pipeline/datatype/TrackedFeatures.hpp"
 #include "depthai/pipeline/datatype/Tracklets.hpp"
 #include "depthai/pipeline/datatype/TransformData.hpp"
+#include "depthai/pipeline/datatype/VIOQualityData.hpp"
 // shared
 #include "depthai/pipeline/datatype/DatatypeEnum.hpp"
 #include "depthai/utility/Serialization.hpp"
@@ -249,6 +250,9 @@ std::shared_ptr<ADatatype> StreamMessageParser::parseMessage(streamPacketDesc_t*
         case DatatypeEnum::ObjectTrackerConfig: {
             return parseDatatype<ObjectTrackerConfig>(metadataStart, serializedObjectSize, data, fd);
         }
+        case DatatypeEnum::VIOQualityData:
+            return parseDatatype<VIOQualityData>(metadataStart, serializedObjectSize, data, fd);
+            break;
     }
 
     throw std::runtime_error("Bad packet, couldn't parse");
