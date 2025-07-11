@@ -85,11 +85,12 @@ void BasaltVIO::run() {
             if(visData->opt_flow_res) {
                 qualityData->numTrackedFeatures.clear();
                 int totalFeatures = 0;
-                for(const auto& obs : visData->opt_flow_res->observations) {
-                    int numFeatures = obs.size();
+                for(const auto& keypoints : visData->opt_flow_res->keypoints) {
+                    int numFeatures = keypoints.size();
                     qualityData->numTrackedFeatures.push_back(numFeatures);
                     totalFeatures += numFeatures;
                 }
+
                 qualityData->numObservations = totalFeatures;
                 
                 // Calculate average tracking quality based on number of tracked features
@@ -257,7 +258,7 @@ void BasaltVIO::initialize(std::vector<std::shared_ptr<ImgFrame>> frames) {
     pimpl->outStateQueue = std::make_shared<tbb::concurrent_bounded_queue<basalt::PoseVelBiasState<double>::Ptr>>();
     vio->out_state_queue = pimpl->outStateQueue;
     pimpl->outVisQueue = std::make_shared<tbb::concurrent_bounded_queue<basalt::VioVisualizationData::Ptr>>();
-    vio->out_vis_queue = pimpl->outVisQueue.get();
+    vio->out_vis_queue = pimpl->outVisQueue;
     vio->opt_flow_depth_guess_queue = optFlowPtr->input_depth_queue;
     vio->opt_flow_state_queue = optFlowPtr->input_state_queue;
     vio->opt_flow_lm_bundle_queue = optFlowPtr->input_lm_bundle_queue;
